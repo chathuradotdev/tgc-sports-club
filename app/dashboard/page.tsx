@@ -9,6 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { ArrowRight, Printer, LogOut } from 'lucide-react'
 import { toast } from "@/app/components/ui/use-toast"
 import { useUser } from '@clerk/nextjs';
+import axios from "axios";
+import { fetchBilliardTableSessions,startGame,endGame } from '@/services/api';
+
 
 interface PoolTable {
   id: number
@@ -27,14 +30,26 @@ interface BillBreakdown {
   additionalMinutes: number
 }
 
+interface BilliardSession {
+    sessionId: number;
+    tableId: number;
+    playerName: string;
+    startTime: string | null;
+    endTime: string | null;
+    isActive: boolean;
+    totalAmount: number | null;
+  }
+
 export default function PoolClubManager() {
     const { user, isLoaded, isSignedIn } = useUser();
-  const [poolTables, setPoolTables] = useState<PoolTable[]>([
-    { id: 1, occupied: false, occupant: "", startTime: null, endTime: null, bill: null },
-    { id: 2, occupied: false, occupant: "", startTime: null, endTime: null, bill: null },
-    { id: 3, occupied: false, occupant: "", startTime: null, endTime: null, bill: null },
-  ])
+    const [poolTables, setPoolTables] = useState<PoolTable[]>([]);
+//   const [poolTables, setPoolTables] = useState<PoolTable[]>([
+//     { id: 1, occupied: false, occupant: "", startTime: null, endTime: null, bill: null },
+//     { id: 2, occupied: false, occupant: "", startTime: null, endTime: null, bill: null },
+//     { id: 3, occupied: false, occupant: "", startTime: null, endTime: null, bill: null },
+//   ])
 
+  const [error, setError] = useState<string | null>(null); 
   const [endGameConfirmOpen, setEndGameConfirmOpen] = useState(false)
   const [endGameReceiptOpen, setEndGameReceiptOpen] = useState(false)
   const [startGameDialogOpen, setStartGameDialogOpen] = useState(false)
@@ -42,6 +57,60 @@ export default function PoolClubManager() {
   const [tableToStart, setTableToStart] = useState<PoolTable | null>(null)
   const [loggedInUser, setLoggedInUser] = useState("John Doe")
   const [billBreakdown, setBillBreakdown] = useState<BillBreakdown | null>(null)
+
+
+  //////////////////////////////////
+  const fetchBilliardTableSessions = async () => {
+    try {
+      const response = await fetch("https://localhost:44381/api/BilliardTable/GetAllBilliardTableActiveSessions");
+      const sessions = await response.json();
+  
+      // Define the type for a table
+      interface Table {
+        id: number;
+        occupied: boolean;
+        occupant: string;
+        startTime: Date | null;
+        endTime: Date | null;
+        bill: number | null;
+      }
+  
+      // Map API response to occupied tables
+      const occupiedTables: Table[] = sessions.map((session: any, index: number) => ({
+        id: session.tableId || index + 1, // Ensure unique IDs
+        occupied: true,
+        occupant: session.playerName || "",
+        startTime: session.startTime ? new Date(session.startTime) : null,
+        endTime: session.endTime ? new Date(session.endTime) : null,
+        bill: session.totalAmount || null,
+      }));
+  
+      // Fill in the remaining tables with default values
+      const allTables: Table[] = Array.from({ length: 3 }, (_, index) => {
+        const tableIndex = index + 1;
+        return (
+          occupiedTables.find((table: Table) => table.id === tableIndex) || {
+            id: tableIndex,
+            occupied: false,
+            occupant: "",
+            startTime: null,
+            endTime: null,
+            bill: null,
+          }
+        );
+      });
+  
+      setPoolTables(allTables);
+    } catch (error) {
+      console.error("Failed to fetch billiard table sessions:", error);
+    }
+  };
+  
+  useEffect(() => {
+    fetchBilliardTableSessions();
+  }, []);
+
+  /////////////////////////////////
 
    // Check if the user is loaded and signed in
    useEffect(() => {
@@ -54,32 +123,51 @@ export default function PoolClubManager() {
     }
   }, [isLoaded, isSignedIn, user]);
 
-  const assignTable = (occupant: string) => {
-    if (tableToStart) {
-      if (occupant.trim() === "") {
-        toast({
-          title: "Error",
-          description: "Please enter a player name.",
-          variant: "destructive",
-        })
-        return
-      }
-      setPoolTables(
-        poolTables.map((table) =>
-          table.id === tableToStart.id
-            ? { ...table, occupied: true, occupant, startTime: new Date(), endTime: null, bill: null }
-            : table
-        )
-      )
+  const assignTable = (occupant: string,tableId: number) => {
+    // CAN DELETE
+    // if (tableToStart) {
+    //   if (occupant.trim() === "") {
+    //     toast({
+    //       title: "Error",
+    //       description: "Please enter a player name.",
+    //       variant: "destructive",
+    //     })
+    //     return
+    //   }
+    //   setPoolTables(
+    //     poolTables.map((table) =>
+    //       table.id === tableToStart.id
+    //         ? { ...table, occupied: true, occupant, startTime: new Date(), endTime: null, bill: null }
+    //         : table
+    //     )
+    //   )
+    //   setStartGameDialogOpen(false)
+    //   setTableToStart(null)
+    //   toast({
+    //     title: "Game Started",
+    //     description: `Table ${tableToStart.id} assigned to ${occupant}`,
+    //     variant:"success",
+    //   })
+
+    // }
+
+    //Insert Data to Submit API
+   // const result =  fetchBilliardTableSessions(occupant, tableId);
+
+   //setStartGameDialogOpen(false)
+   //setTableToStart(null)
+  }
+
+  const handleStartGame = async (occupant: string,tableId: number) => {
+    try {
+      const result = await startGame(tableId, occupant,user?.firstName??'',user?.id??'');
       setStartGameDialogOpen(false)
       setTableToStart(null)
-      toast({
-        title: "Game Started",
-        description: `Table ${tableToStart.id} assigned to ${occupant}`,
-        variant:"success",
-      })
+      fetchBilliardTableSessions(); // Recall List API
+    } catch (error) {
+     
     }
-  }
+  };
 
   const showStartGameDialog = (tableId: number) => {
     const table = poolTables.find(t => t.id === tableId)
@@ -114,61 +202,92 @@ export default function PoolClubManager() {
     }
   }
 
-  const finalizeEndGame = () => {
-    if (currentTable && billBreakdown) {
-      setPoolTables(
-        poolTables.map((table) =>
-          table.id === currentTable.id
-            ? { ...currentTable, occupied: false, bill: billBreakdown.totalBill }
-            : table
-        )
-      )
-      setEndGameReceiptOpen(false)
-      setCurrentTable(null)
-      setBillBreakdown(null)
-      toast({
-        title: "Game Ended",
-        description: `Table ${currentTable.id} is now available`,
-        variant:"destructive",
-      })
+//   const finalizeEndGame = () => {
+//     // if (currentTable && billBreakdown) {
+//     //   setPoolTables(
+//     //     poolTables.map((table) =>
+//     //       table.id === currentTable.id
+//     //         ? { ...currentTable, occupied: false, bill: billBreakdown.totalBill }
+//     //         : table
+//     //     )
+//     //   )
+//     //   setEndGameReceiptOpen(false)
+//     //   setCurrentTable(null)
+//     //   setBillBreakdown(null)
+//     //   toast({
+//     //     title: "Game Ended",
+//     //     description: `Table ${currentTable.id} is now available`,
+//     //     variant:"destructive",
+//     //   })
+//     // }
+//     if (currentTable && billBreakdown) {
+//         debugger;
+//         //Call End API
+//         const result = await endGame(currentTable.id,billBreakdown.totalMinutes,billBreakdown.initialCharge,billBreakdown.additionalCharge,
+//             billBreakdown.totalBill,user?.firstName??'',user?.id??'');
+
+
+//         setEndGameReceiptOpen(false)
+//         setCurrentTable(null)
+//         setBillBreakdown(null)
+//     }
+//   }
+
+const finalizeEndGame = async () => {
+    try {
+           if (currentTable && billBreakdown) {
+         debugger;
+         //Call End API
+         const result = await endGame(currentTable.id,billBreakdown.totalMinutes,billBreakdown.initialCharge,billBreakdown.additionalCharge,
+            billBreakdown.totalBill,user?.firstName??'',user?.id??'');
+         setEndGameReceiptOpen(false)
+         setCurrentTable(null)
+         setBillBreakdown(null)
+     }
+      fetchBilliardTableSessions(); // Recall List API
+    } catch (error) {
+     
     }
-  }
+  };
 
   const calculateBill = (table: PoolTable): BillBreakdown => {
     if (table.startTime && table.endTime) {
-      const durationInMinutes = Math.ceil((table.endTime.getTime() - table.startTime.getTime()) / (1000 * 60))
-      let totalBill = 0
-      let additionalMinutes = 0
-      let additionalCharge = 0
-
-      if (durationInMinutes <= 60) {
-        totalBill = 1000
+      const durationInMinutes = Math.ceil((table.endTime.getTime() - table.startTime.getTime()) / (1000 * 60));
+      let totalBill = 0;
+      let additionalMinutes = 0;
+      let additionalCharge = 0;
+  
+      if (durationInMinutes <= 70) {
+        totalBill = 1000;
       } else {
-        totalBill = 1000
-        additionalMinutes = durationInMinutes - 60
-        if (additionalMinutes > 10) {
-          const chargeableMinutes = Math.ceil(additionalMinutes / 15) * 15
-          additionalCharge = (chargeableMinutes / 60) * 1000
-          totalBill += additionalCharge
-        }
+        totalBill = 1000;
+        additionalMinutes = durationInMinutes - 60;
+        additionalCharge = additionalMinutes * 17;
+        totalBill += additionalCharge;
       }
-
+  
+      totalBill = parseFloat(totalBill.toFixed(2));
+      additionalCharge = parseFloat(additionalCharge.toFixed(2));
+  
       return {
         initialCharge: 1000,
         additionalCharge,
         totalBill,
         totalMinutes: durationInMinutes,
-        additionalMinutes
-      }
+        additionalMinutes,
+      };
     }
+  
     return {
       initialCharge: 0,
       additionalCharge: 0,
       totalBill: 0,
       totalMinutes: 0,
-      additionalMinutes: 0
-    }
-  }
+      additionalMinutes: 0,
+    };
+  };
+  
+  
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -192,13 +311,6 @@ export default function PoolClubManager() {
       <div className="container mx-auto">
         <div className="mb-8 flex items-center justify-between rounded-lg bg-white bg-opacity-80 p-4 shadow-lg backdrop-blur-sm">
           <h1 className="text-3xl font-bold text-gray-900">TGC Pool Club Table Management</h1>
-          {/* <div className="flex items-center gap-4">
-            <span className="text-lg font-medium text-gray-700">{loggedInUser}</span>
-            <Button onClick={handleLogout} variant="outline" className="flex items-center gap-2">
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
-          </div> */}
         </div>
 
         <div className="grid gap-8 md:grid-cols-3">
@@ -292,7 +404,10 @@ export default function PoolClubManager() {
             <Button type="button" variant="secondary" onClick={() => setStartGameDialogOpen(false)}>
               Cancel
             </Button>
-            <Button type="button" onClick={() => assignTable(tableToStart?.occupant || "")} className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+            {/* <Button type="button" onClick={() => assignTable(tableToStart?.occupant ?? '', tableToStart?.id ?? 0)} className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+              Confirm
+            </Button> */}
+            <Button type="button" onClick={() => handleStartGame(tableToStart?.occupant ?? '', tableToStart?.id ?? 0)} className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
               Confirm
             </Button>
           </DialogFooter>
