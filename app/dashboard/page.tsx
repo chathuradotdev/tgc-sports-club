@@ -7,10 +7,11 @@ import { Label } from "@/app/components/ui/label"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/app/components/ui/dialog"
 import { ArrowRight, Printer, LogOut } from 'lucide-react'
-import { toast } from "@/app/components/ui/use-toast"
+//import { toast } from "@/app/components/ui/use-toast"
 import { useUser } from '@clerk/nextjs';
 import axios from "axios";
 import { fetchBilliardTableSessions,startGame,endGame } from '@/services/api';
+import { toast } from "react-toastify";
 
 
 interface PoolTable {
@@ -123,40 +124,6 @@ export default function PoolClubManager() {
     }
   }, [isLoaded, isSignedIn, user]);
 
-  const assignTable = (occupant: string,tableId: number) => {
-    // CAN DELETE
-    // if (tableToStart) {
-    //   if (occupant.trim() === "") {
-    //     toast({
-    //       title: "Error",
-    //       description: "Please enter a player name.",
-    //       variant: "destructive",
-    //     })
-    //     return
-    //   }
-    //   setPoolTables(
-    //     poolTables.map((table) =>
-    //       table.id === tableToStart.id
-    //         ? { ...table, occupied: true, occupant, startTime: new Date(), endTime: null, bill: null }
-    //         : table
-    //     )
-    //   )
-    //   setStartGameDialogOpen(false)
-    //   setTableToStart(null)
-    //   toast({
-    //     title: "Game Started",
-    //     description: `Table ${tableToStart.id} assigned to ${occupant}`,
-    //     variant:"success",
-    //   })
-
-    // }
-
-    //Insert Data to Submit API
-   // const result =  fetchBilliardTableSessions(occupant, tableId);
-
-   //setStartGameDialogOpen(false)
-   //setTableToStart(null)
-  }
 
   const handleStartGame = async (occupant: string,tableId: number) => {
     try {
@@ -164,6 +131,9 @@ export default function PoolClubManager() {
       setStartGameDialogOpen(false)
       setTableToStart(null)
       fetchBilliardTableSessions(); // Recall List API
+      toast.success("Game Started for Table No: "+ tableId , {
+        autoClose: 5000,
+      });
     } catch (error) {
      
     }
@@ -173,11 +143,9 @@ export default function PoolClubManager() {
     const table = poolTables.find(t => t.id === tableId)
     if (table) {
       if (table.occupant.trim() === "") {
-        toast({
-          title: "Error",
-          description: "Please enter a player name before starting the game.",
-          variant: "destructive",
-        })
+        toast.error("Please enter player's name to continue", {
+            autoClose: 5000,
+          });
         return
       }
       setTableToStart(table)
@@ -202,41 +170,9 @@ export default function PoolClubManager() {
     }
   }
 
-//   const finalizeEndGame = () => {
-//     // if (currentTable && billBreakdown) {
-//     //   setPoolTables(
-//     //     poolTables.map((table) =>
-//     //       table.id === currentTable.id
-//     //         ? { ...currentTable, occupied: false, bill: billBreakdown.totalBill }
-//     //         : table
-//     //     )
-//     //   )
-//     //   setEndGameReceiptOpen(false)
-//     //   setCurrentTable(null)
-//     //   setBillBreakdown(null)
-//     //   toast({
-//     //     title: "Game Ended",
-//     //     description: `Table ${currentTable.id} is now available`,
-//     //     variant:"destructive",
-//     //   })
-//     // }
-//     if (currentTable && billBreakdown) {
-//         debugger;
-//         //Call End API
-//         const result = await endGame(currentTable.id,billBreakdown.totalMinutes,billBreakdown.initialCharge,billBreakdown.additionalCharge,
-//             billBreakdown.totalBill,user?.firstName??'',user?.id??'');
-
-
-//         setEndGameReceiptOpen(false)
-//         setCurrentTable(null)
-//         setBillBreakdown(null)
-//     }
-//   }
-
 const finalizeEndGame = async () => {
     try {
            if (currentTable && billBreakdown) {
-         debugger;
          //Call End API
          const result = await endGame(currentTable.id,billBreakdown.totalMinutes,billBreakdown.initialCharge,billBreakdown.additionalCharge,
             billBreakdown.totalBill,user?.firstName??'',user?.id??'');
@@ -245,6 +181,9 @@ const finalizeEndGame = async () => {
          setBillBreakdown(null)
      }
       fetchBilliardTableSessions(); // Recall List API
+      toast.success("Game successfully ended.", {
+        autoClose: 5000,
+      });
     } catch (error) {
      
     }
@@ -299,11 +238,9 @@ const finalizeEndGame = async () => {
 
   const handleLogout = () => {
     console.log("User logged out")
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-      variant:"success",
-    })
+    toast.success("Logout.", {
+        autoClose: 5000,
+      });
   }
 
   return (

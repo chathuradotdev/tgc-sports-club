@@ -25,7 +25,7 @@ export async function fetchBilliardTableSessions() {
 
 //Start Game API Call
 export async function startGame(tableId: number, playerName: string,gameStartedStaffName : string,createdBy:string) {
-  alert(gameStartedStaffName);
+
     try {
       const response = await fetch(`https://localhost:44381/api/BilliardTable/StartGame`, {
         method: 'POST',
