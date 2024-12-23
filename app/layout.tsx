@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider, SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import ClientRedirect from "@/app/components/clientredirects"; // Import ClientRedirect
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -59,6 +61,7 @@ export default function RootLayout({
           {/* Include the ClientRedirect component */}
           <ClientRedirect />
           <main style={{ flex: 1 }}>{children}</main>
+          <ToastContainer theme="colored" />
         </body>
       </html>
     </ClerkProvider>
