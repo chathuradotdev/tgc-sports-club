@@ -4,7 +4,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:44381
 
 export async function fetchBilliardTableSessions() {
   try {
-    const response = await fetch(`https://localhost:44381/api/BilliardTable/GetAllBilliardTableActiveSessions`, {
+    const response = await fetch(`http://sportsapi.runasp.net/api/BilliardTable/GetAllBilliardTableActiveSessions`, {
+   
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -27,7 +28,7 @@ export async function fetchBilliardTableSessions() {
 export async function startGame(tableId: number, playerName: string,gameStartedStaffName : string,createdBy:string) {
 
     try {
-      const response = await fetch(`https://localhost:44381/api/BilliardTable/StartGame`, {
+      const response = await fetch(`http://sportsapi.runasp.net/api/BilliardTable/StartGame`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -56,7 +57,7 @@ export async function startGame(tableId: number, playerName: string,gameStartedS
 export async function endGame(tableId: number,totaltimeinminutes:Number,baseAmount:Number,additionalAmount:Number,
   totalAmount:Number,gameEndedStaffName:string,updatedBy:string) {
     try {
-      const response = await fetch(`https://localhost:44381/api/BilliardTable/EndGame`, {
+      const response = await fetch(`http://sportsapi.runasp.net/api/BilliardTable/EndGame`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

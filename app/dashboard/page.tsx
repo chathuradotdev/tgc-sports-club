@@ -3,16 +3,11 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input"
-import { Label } from "@/app/components/ui/label"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/app/components/ui/dialog"
-import { ArrowRight, Printer, LogOut } from 'lucide-react'
-//import { toast } from "@/app/components/ui/use-toast"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/app/components/ui/dialog"
 import { useUser } from '@clerk/nextjs';
-import axios from "axios";
-import { fetchBilliardTableSessions,startGame,endGame } from '@/services/api';
+import {startGame,endGame } from '@/services/api';
 import { toast } from "react-toastify";
-
 
 interface PoolTable {
   id: number
@@ -31,15 +26,6 @@ interface BillBreakdown {
   additionalMinutes: number
 }
 
-interface BilliardSession {
-    sessionId: number;
-    tableId: number;
-    playerName: string;
-    startTime: string | null;
-    endTime: string | null;
-    isActive: boolean;
-    totalAmount: number | null;
-  }
 
 export default function PoolClubManager() {
     const { user, isLoaded, isSignedIn } = useUser();
@@ -58,12 +44,14 @@ export default function PoolClubManager() {
   const [tableToStart, setTableToStart] = useState<PoolTable | null>(null)
   const [loggedInUser, setLoggedInUser] = useState("John Doe")
   const [billBreakdown, setBillBreakdown] = useState<BillBreakdown | null>(null)
+  const [isLoading, setIsLoading] = useState(false);
 
 
   //////////////////////////////////
   const fetchBilliardTableSessions = async () => {
     try {
-      const response = await fetch("https://localhost:44381/api/BilliardTable/GetAllBilliardTableActiveSessions");
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:44381/api';
+      const response = await fetch("http://sportsapi.runasp.net/api/BilliardTable/GetAllBilliardTableActiveSessions");
       const sessions = await response.json();
   
       // Define the type for a table
@@ -126,18 +114,21 @@ export default function PoolClubManager() {
 
 
   const handleStartGame = async (occupant: string,tableId: number) => {
+
     try {
-      const result = await startGame(tableId, occupant,user?.firstName??'',user?.id??'');
+    
+     const result = await startGame(tableId, occupant,user?.firstName??'',user?.id??'');
       setStartGameDialogOpen(false)
-      setTableToStart(null)
+       setTableToStart(null)
       fetchBilliardTableSessions(); // Recall List API
       toast.success("Game Started for Table No: "+ tableId , {
         autoClose: 5000,
       });
     } catch (error) {
-     
-    }
+        toast.error("Failed to start the game. Please try again.");
+      } 
   };
+  
 
   const showStartGameDialog = (tableId: number) => {
     const table = poolTables.find(t => t.id === tableId)
@@ -244,6 +235,7 @@ const finalizeEndGame = async () => {
   }
 
   return (
+    
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-purple-100 p-4">
       <div className="container mx-auto">
         <div className="mb-8 flex items-center justify-between rounded-lg bg-white bg-opacity-80 p-4 shadow-lg backdrop-blur-sm">
@@ -454,6 +446,7 @@ const finalizeEndGame = async () => {
         </DialogContent>
       </Dialog>
     </div>
+    
   )
 }
 
