@@ -1,21 +1,24 @@
-// components/ClientRedirect.tsx
 "use client";
 
 import { useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 const ClientRedirect = () => {
   const { isSignedIn } = useUser();
   const router = useRouter();
+  const pathname = usePathname(); 
 
   useEffect(() => {
-    if (isSignedIn) {
+
+    if (isSignedIn && (pathname === "/" || pathname === "/signin")) {
       router.push("/dashboard");
     }
-  }, [isSignedIn, router]);
+  }, [isSignedIn, pathname, router]);
 
-  return null; 
+  return null;
 };
 
 export default ClientRedirect;
+
+
